@@ -1,33 +1,41 @@
-# Python
-
+# Python cache and compiled files
 __pycache__/
-
 *.pyc
-
 *.pyo
-
 *.pyd
 
-*.sqlite3
-
-*.db
-
+# Virtual environment
 venv/
+.venv/
 
+# Environment variables and secrets
 .env
-
 *.env
 
-.idea/
+# Databases
+*.db
+*.sqlite
+*.sqlite3
 
-.vscode/
-
+# Logs
 logs/*.log
+*.log
 
+# Generated reports
 exports/*.pdf
-
 exports/*.csv
-
 exports/*.json
 
+# Test and tooling cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE files
+.idea/
+.vscode/
+
+# Operating system files
 .DS_Store
+Thumbs.db

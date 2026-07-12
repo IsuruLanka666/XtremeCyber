@@ -1,55 +1,69 @@
 """
-XtremeCyber
-
-Main Entry Point
+XtremeCyber application entry point.
 """
 
 import sys
-
 from pathlib import Path
 
-from config import *
+from config import (
+    APP_NAME,
+    AUTHOR,
+    DATABASE_PATH,
+    VERSION,
+)
+from core.database.database import database_manager
+from core.exceptions import XtremeCyberError
+from core.helpers import ensure_directories
+from core.logger import configure_logging
 
-def create_directories():
 
-    directories = [
+def print_startup_banner() -> None:
+    """Display basic application startup information."""
 
-        ASSETS_DIR,
+    print("=" * 68)
+    print(f"{APP_NAME} - Automated Vulnerability Assessment Platform")
+    print(f"Version: {VERSION}")
+    print(f"Author:  {AUTHOR}")
+    print("=" * 68)
 
-        DATABASE_DIR,
 
-        EXPORT_DIR,
+def initialize_application() -> None:
+    """Initialize directories, logging, and the database."""
 
-        LOG_DIR,
+    ensure_directories()
 
-        SCREENSHOT_DIR
+    logger = configure_logging()
 
-    ]
+    logger.info("Starting %s version %s", APP_NAME, VERSION)
 
-    for folder in directories:
+    database_manager.initialize()
 
-        Path(folder).mkdir(parents=True, exist_ok=True)
+    logger.info("Application initialization completed.")
+    logger.info("Database location: %s", DATABASE_PATH)
 
-def startup():
 
-    print("=" * 60)
+def main() -> int:
+    """Run the XtremeCyber application."""
 
-    print(APP_NAME)
+    print_startup_banner()
 
-    print("Version :", VERSION)
+    try:
+        initialize_application()
 
-    print("Starting...")
+        print("Application foundation initialized successfully.")
+        print(f"Database created at: {Path(DATABASE_PATH)}")
+        print("Log file created inside the logs folder.")
 
-    print("=" * 60)
+        return 0
 
-def main():
+    except XtremeCyberError as exc:
+        print(f"XtremeCyber startup error: {exc}")
+        return 1
 
-    create_directories()
+    except Exception as exc:
+        print(f"Unexpected startup error: {exc}")
+        return 1
 
-    startup()
-
-    print("Project initialized successfully.")
 
 if __name__ == "__main__":
-
-    main()
+    sys.exit(main())
