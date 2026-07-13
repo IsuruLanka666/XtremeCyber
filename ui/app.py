@@ -29,11 +29,9 @@ class XtremeCyberApplication:
 
     def __init__(self) -> None:
         self.qt_application = QApplication(sys.argv)
-
         self.qt_application.setApplicationName(APP_NAME)
         self.qt_application.setApplicationVersion(VERSION)
         self.qt_application.setOrganizationName("XtremeCyber")
-
         self.qt_application.setFont(QFont("Segoe UI", 10))
 
         self.theme_manager = ThemeManager(self.qt_application)
@@ -41,30 +39,20 @@ class XtremeCyberApplication:
 
         self.splash_screen: SplashScreen | None = None
         self.main_window: MainWindow | None = None
-
         self._startup_stage = 0
 
     def run(self) -> int:
-        """Initialize and execute the Qt event loop."""
-
         try:
             self._prepare_application()
             self._show_splash_screen()
-
             return self.qt_application.exec()
-
         except Exception as exc:
             logger.exception("Application startup failed.")
-
             QMessageBox.critical(
                 None,
                 "XtremeCyber Startup Error",
-                (
-                    "XtremeCyber could not start successfully.\n\n"
-                    f"Details: {exc}"
-                ),
+                f"XtremeCyber could not start successfully.\n\nDetails: {exc}",
             )
-
             return 1
 
     def _prepare_application(self) -> None:
@@ -72,19 +60,13 @@ class XtremeCyberApplication:
         configure_logging()
         database_manager.initialize()
 
-        stored_theme = self.settings_repository.get(
-            "theme",
-            THEME,
-        )
-
+        stored_theme = self.settings_repository.get("theme", THEME)
         self.theme_manager.apply_theme(stored_theme or Theme.DARK.value)
-
         logger.info("Qt application prepared successfully.")
 
     def _show_splash_screen(self) -> None:
         self.splash_screen = SplashScreen()
         self.splash_screen.show()
-
         QTimer.singleShot(250, self._advance_startup)
 
     def _advance_startup(self) -> None:
@@ -102,10 +84,8 @@ class XtremeCyberApplication:
 
         if self._startup_stage < len(startup_stages):
             progress, message = startup_stages[self._startup_stage]
-
             self.splash_screen.set_progress(progress, message)
             self._startup_stage += 1
-
             QTimer.singleShot(280, self._advance_startup)
             return
 
@@ -113,15 +93,10 @@ class XtremeCyberApplication:
 
     def _open_main_window(self) -> None:
         self.main_window = MainWindow()
-
-        self.main_window.theme_change_requested.connect(
-            self._toggle_theme
-        )
-
+        self.main_window.theme_change_requested.connect(self._toggle_theme)
         self.main_window.set_active_theme(
             self.theme_manager.current_theme
         )
-
         self.main_window.show()
 
         if self.splash_screen is not None:
@@ -133,11 +108,7 @@ class XtremeCyberApplication:
 
     def _toggle_theme(self) -> None:
         selected_theme = self.theme_manager.toggle_theme()
-
-        self.settings_repository.set(
-            "theme",
-            selected_theme.value,
-        )
+        self.settings_repository.set("theme", selected_theme.value)
 
         if self.main_window is not None:
             self.main_window.set_active_theme(selected_theme)
@@ -149,7 +120,5 @@ class XtremeCyberApplication:
 
 
 def run_application() -> int:
-    """Create and run the XtremeCyber GUI application."""
-
     application = XtremeCyberApplication()
     return application.run()

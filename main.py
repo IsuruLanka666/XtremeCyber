@@ -9,7 +9,6 @@ from ui.app import run_application
 
 def main() -> int:
     """Launch the XtremeCyber desktop application."""
-
     return run_application()
 
 
