@@ -22,7 +22,7 @@ VERSION = "1.0.0"
 AUTHOR = "Isuru Lankadhikari"
 
 WINDOW_WIDTH = 1400
-WINDOWN_HEIGHT = 900
+WINDOW_HEIGHT = 900
 
 THEME = os.getenv("XTREMECYBER_THEME", "dark").strip().lower()
 
