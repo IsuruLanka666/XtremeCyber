@@ -1,5 +1,7 @@
+
 """
-Splash screen for XtremeCyber.
+XtremeCyber splash screen
+
 """
 
 from __future__ import annotations
@@ -19,148 +21,165 @@ from config import APP_NAME, VERSION
 
 
 class SplashScreen(QWidget):
-    """Rounded frameless splash screen used during startup."""
-
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle(f"{APP_NAME} Startup")
-        self.setFixedSize(680, 390)
+
+        self.setFixedSize(760, 430)
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
         self._build_ui()
 
     def _build_ui(self) -> None:
-        root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(12, 12, 12, 12)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(12, 12, 12, 12)
 
         container = QFrame()
         container.setObjectName("splashContainer")
         container.setStyleSheet(
             """
             QFrame#splashContainer {
-                background-color: #101632;
-                border: 1px solid #2D3760;
+                background-color: #08100C;
+                border: 1px solid #1C4A31;
                 border-radius: 28px;
             }
-            QFrame#splashVisualPanel {
-                background-color: #5265FF;
-                border: none;
+            QFrame#visualPanel {
+                background-color: #0A2417;
+                border: 1px solid #13653A;
                 border-radius: 22px;
             }
-            QLabel { background-color: transparent; }
+            QFrame#messagePanel {
+                background-color: rgba(5, 36, 23, 0.85);
+                border: 1px solid #13653A;
+                border-radius: 18px;
+            }
+            QLabel {
+                background-color: transparent;
+            }
+            QLabel#taglineTitle {
+                color: #F4FFF8;
+                font-size: 17px;
+                font-weight: 800;
+            }
+            QLabel#taglineSubtitle {
+                color: #8EB09D;
+                font-size: 11px;
+            }
             QProgressBar {
-                background-color: #20294B;
-                color: #FFFFFF;
+                background-color: #122019;
+                color: #DFFFF0;
                 border: none;
-                border-radius: 8px;
-                min-height: 17px;
+                border-radius: 9px;
+                min-height: 18px;
                 text-align: center;
+                font-weight: 700;
             }
             QProgressBar::chunk {
-                background-color: #5265FF;
-                border-radius: 8px;
+                background-color: #00E676;
+                border-radius: 9px;
             }
             """
         )
 
-        container_layout = QHBoxLayout(container)
-        container_layout.setContentsMargins(25, 25, 25, 25)
-        container_layout.setSpacing(28)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setSpacing(26)
 
-        visual_panel = QFrame()
-        visual_panel.setObjectName("splashVisualPanel")
-        visual_panel.setFixedWidth(235)
+        # Left visual panel
+        visual = QFrame()
+        visual.setObjectName("visualPanel")
+        visual.setFixedWidth(250)
 
-        visual_layout = QVBoxLayout(visual_panel)
-        visual_layout.setContentsMargins(28, 30, 28, 30)
+        visual_layout = QVBoxLayout(visual)
+        visual_layout.setContentsMargins(24, 24, 24, 24)
+        visual_layout.setSpacing(18)
 
-        shield_label = QLabel("XC")
-        shield_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        shield_label.setFixedSize(92, 92)
-        shield_label.setFont(QFont("Segoe UI", 29, QFont.Weight.Bold))
-        shield_label.setStyleSheet(
+        logo = QLabel("X")
+        logo.setFixedSize(118, 118)
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
+        logo.setStyleSheet(
             """
-            QLabel {
-                background-color: #FFFFFF;
-                color: #5265FF;
-                border-radius: 46px;
-            }
+            background-color: #3C40B8;
+            color: #FFFFFF;
+            border: 1px solid #6870E0;
+            border-radius: 59px;
             """
         )
 
-        visual_layout.addWidget(
-            shield_label,
-            alignment=Qt.AlignmentFlag.AlignCenter,
-        )
+        visual_layout.addWidget(logo, alignment=Qt.AlignmentFlag.AlignHCenter)
         visual_layout.addStretch()
 
-        visual_title = QLabel("Discover.\nAssess.\nProtect.")
-        visual_title.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
-        visual_title.setStyleSheet("color: #FFFFFF;")
+        message_panel = QFrame()
+        message_panel.setObjectName("messagePanel")
 
-        visual_description = QLabel(
-            "A modern vulnerability assessment workspace."
+        message_layout = QVBoxLayout(message_panel)
+        message_layout.setContentsMargins(18, 16, 18, 16)
+        message_layout.setSpacing(8)
+
+        tagline = QLabel("Scan.\nUnderstand.\nDefend.")
+        tagline.setObjectName("taglineTitle")
+        tagline.setWordWrap(True)
+
+        tagline_subtitle = QLabel(
+            "Structured vulnerability assessment with a clean and secure workspace."
         )
-        visual_description.setWordWrap(True)
-        visual_description.setStyleSheet(
-            "color: #E1E5FF; font-size: 12px;"
-        )
+        tagline_subtitle.setObjectName("taglineSubtitle")
+        tagline_subtitle.setWordWrap(True)
 
-        visual_layout.addWidget(visual_title)
-        visual_layout.addSpacing(8)
-        visual_layout.addWidget(visual_description)
+        message_layout.addWidget(tagline)
+        message_layout.addWidget(tagline_subtitle)
 
-        content_panel = QWidget()
-        content_layout = QVBoxLayout(content_panel)
-        content_layout.setContentsMargins(8, 25, 12, 20)
+        visual_layout.addWidget(message_panel)
+
+        # Right content panel
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 4, 0, 4)
         content_layout.setSpacing(10)
 
-        product_label = QLabel("SECURITY PLATFORM")
-        product_label.setStyleSheet(
-            "color: #7F8BC0; font-size: 10px; font-weight: 700;"
+        title = QLabel(APP_NAME)
+        title.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
+        title.setStyleSheet("color: #FFFFFF;")
+
+        subtitle = QLabel("Automated Vulnerability Assessment Platform")
+        subtitle.setWordWrap(True)
+        subtitle.setStyleSheet(
+            "color: #95AE9F; font-size: 13px;"
         )
 
-        title_label = QLabel(APP_NAME)
-        title_label.setFont(QFont("Segoe UI", 29, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #FFFFFF;")
+        header_space = QLabel("")
+        header_space.setFixedHeight(6)
 
-        subtitle_label = QLabel(
-            "Automated Vulnerability Assessment Platform"
-        )
-        subtitle_label.setWordWrap(True)
-        subtitle_label.setStyleSheet(
-            "color: #A6AFD0; font-size: 13px;"
-        )
-
-        content_layout.addWidget(product_label)
-        content_layout.addWidget(title_label)
-        content_layout.addWidget(subtitle_label)
-        content_layout.addStretch()
-
-        self.status_label = QLabel("Preparing secure workspace...")
+        self.status_label = QLabel("Connecting to database...")
         self.status_label.setStyleSheet(
-            "color: #98A2C7; font-size: 12px;"
+            "color: #8EA697; font-size: 13px;"
         )
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
+        self.progress_bar.setValue(35)
 
-        version_label = QLabel(f"Version {VERSION}")
-        version_label.setStyleSheet(
-            "color: #646F99; font-size: 10px;"
+        version = QLabel(f"Version {VERSION}")
+        version.setStyleSheet(
+            "color: #5F7869; font-size: 11px;"
         )
 
+        content_layout.addWidget(title)
+        content_layout.addWidget(subtitle)
+        content_layout.addWidget(header_space)
+        content_layout.addStretch()
         content_layout.addWidget(self.status_label)
         content_layout.addWidget(self.progress_bar)
-        content_layout.addWidget(version_label)
+        content_layout.addWidget(version)
 
-        container_layout.addWidget(visual_panel)
-        container_layout.addWidget(content_panel, 1)
-        root_layout.addWidget(container)
+        layout.addWidget(visual)
+        layout.addWidget(content, 1)
+
+        root.addWidget(container)
 
     def set_progress(self, value: int, message: str) -> None:
         self.progress_bar.setValue(max(0, min(int(value), 100)))

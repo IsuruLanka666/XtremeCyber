@@ -1,5 +1,5 @@
 """
-PySide6 application bootstrap for XtremeCyber.
+XtremeCyber application bootstrap with authentication.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from core.database.database import database_manager
 from core.database.repository import SettingsRepository
 from core.helpers import ensure_directories
 from core.logger import configure_logging, get_logger
+from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 from ui.splash import SplashScreen
 from ui.themes import ThemeManager
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 
 
 class XtremeCyberApplication:
-    """Coordinate startup and lifetime of the Qt application."""
+    """Coordinate startup, login, logout, and application lifetime."""
 
     def __init__(self) -> None:
         self.qt_application = QApplication(sys.argv)
@@ -38,7 +39,9 @@ class XtremeCyberApplication:
         self.settings_repository = SettingsRepository()
 
         self.splash_screen: SplashScreen | None = None
+        self.login_window: LoginWindow | None = None
         self.main_window: MainWindow | None = None
+
         self._startup_stage = 0
 
     def run(self) -> int:
@@ -61,7 +64,10 @@ class XtremeCyberApplication:
         database_manager.initialize()
 
         stored_theme = self.settings_repository.get("theme", THEME)
-        self.theme_manager.apply_theme(stored_theme or Theme.DARK.value)
+        self.theme_manager.apply_theme(
+            stored_theme or Theme.DARK.value
+        )
+
         logger.info("Qt application prepared successfully.")
 
     def _show_splash_screen(self) -> None:
@@ -77,8 +83,8 @@ class XtremeCyberApplication:
             (15, "Loading configuration..."),
             (35, "Connecting to database..."),
             (55, "Loading theme resources..."),
-            (75, "Preparing user interface..."),
-            (90, "Loading dashboard..."),
+            (75, "Preparing authentication..."),
+            (90, "Loading workspace..."),
             (100, "XtremeCyber is ready."),
         ]
 
@@ -89,26 +95,61 @@ class XtremeCyberApplication:
             QTimer.singleShot(280, self._advance_startup)
             return
 
-        self._open_main_window()
+        self._open_login_window()
 
-    def _open_main_window(self) -> None:
-        self.main_window = MainWindow()
-        self.main_window.theme_change_requested.connect(self._toggle_theme)
-        self.main_window.set_active_theme(
-            self.theme_manager.current_theme
+    def _open_login_window(self) -> None:
+        self.login_window = LoginWindow()
+        self.login_window.login_succeeded.connect(
+            self._open_main_window
         )
-        self.main_window.show()
+        self.login_window.show()
 
         if self.splash_screen is not None:
             self.splash_screen.close()
             self.splash_screen.deleteLater()
             self.splash_screen = None
 
-        logger.info("Main application window displayed.")
+        logger.info("Login window displayed.")
+
+    def _open_main_window(self, session) -> None:
+        self.main_window = MainWindow(session=session)
+        self.main_window.theme_change_requested.connect(
+            self._toggle_theme
+        )
+        self.main_window.logout_requested.connect(
+            self._handle_logout
+        )
+        self.main_window.set_active_theme(
+            self.theme_manager.current_theme
+        )
+        self.main_window.show()
+
+        if self.login_window is not None:
+            self.login_window.close()
+            self.login_window.deleteLater()
+            self.login_window = None
+
+        logger.info(
+            "Main window displayed for user %s.",
+            session.username,
+        )
+
+    def _handle_logout(self) -> None:
+        if self.main_window is not None:
+            self.main_window.close()
+            self.main_window.deleteLater()
+            self.main_window = None
+
+        self._open_login_window()
+        logger.info("User logged out.")
 
     def _toggle_theme(self) -> None:
         selected_theme = self.theme_manager.toggle_theme()
-        self.settings_repository.set("theme", selected_theme.value)
+
+        self.settings_repository.set(
+            "theme",
+            selected_theme.value,
+        )
 
         if self.main_window is not None:
             self.main_window.set_active_theme(selected_theme)
