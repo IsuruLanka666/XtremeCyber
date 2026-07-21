@@ -6,7 +6,9 @@ XtremeCyber main window.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
+
+from ui.user_management_page import UserManagementPage
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -32,10 +34,8 @@ from core.constants import Theme
 from core.database.repository import ScanRepository, SettingsRepository
 from core.logger import get_logger
 
-try:
+if TYPE_CHECKING:
     from core.auth.session import UserSession
-except ImportError:
-    UserSession = object
 
 
 logger = get_logger(__name__)
@@ -126,6 +126,12 @@ class MainWindow(QMainWindow):
             )
         )
         self.page_stack.addWidget(self._create_settings_page())
+        
+        if self.session is not None and self.session.is_admin:
+            self.page_stack.addWidget(
+                UserManagementPage(session=self.session)
+        )
+
 
         main_layout.addWidget(self.page_stack, 1)
         root_layout.addWidget(main_area, 1)
@@ -191,6 +197,12 @@ class MainWindow(QMainWindow):
         label.setObjectName("navigationSectionLabel")
         layout.addWidget(label)
         layout.addWidget(self._create_nav_button("Settings", 4))
+
+        if self.session is not None and self.session.is_admin:
+            layout.addWidget(
+                self._create_nav_button("Users", 5)
+            )
+        
         layout.addStretch()
 
         warning = QFrame()
@@ -767,6 +779,7 @@ class MainWindow(QMainWindow):
             ("Results", "Review discovered hosts, services, and findings"),
             ("Reports", "Manage and export assessment documentation"),
             ("Settings", "Customize XtremeCyber preferences"),
+            ("Users", "Create and manage XtremeCyber user accounts"),
         ]
 
         title, subtitle = info[page_index]
