@@ -9,8 +9,16 @@ import sys
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication, QMessageBox
+from requests import Session
 
-from config import APP_NAME, THEME, VERSION
+from config import SESSION_TIMEOUT_MINUTES
+from config import (
+    APP_NAME,
+    SESSION_TIMEOUT_MINUTES,
+    THEME,
+    VERSION,
+)
+from core.auth.session_guard import SessionGuard
 from core.constants import Theme
 from core.database.database import database_manager
 from core.database.repository import SettingsRepository
@@ -37,6 +45,19 @@ class XtremeCyberApplication:
 
         self.theme_manager = ThemeManager(self.qt_application)
         self.settings_repository = SettingsRepository()
+
+        self.session_guard = SessionGuard(
+        timeout_minutes=SESSION_TIMEOUT_MINUTES,
+        parent=self.qt_application,
+        )
+
+        self.session_guard.session_expired.connect(
+        self._handle_session_expired
+        )
+
+        self.qt_application.installEventFilter(
+        self.session_guard
+        )
 
         self.splash_screen: SplashScreen | None = None
         self.login_window: LoginWindow | None = None
@@ -124,6 +145,8 @@ class XtremeCyberApplication:
         )
         self.main_window.show()
 
+        self.session_guard.start()
+
         if self.login_window is not None:
             self.login_window.close()
             self.login_window.deleteLater()
@@ -135,6 +158,8 @@ class XtremeCyberApplication:
         )
 
     def _handle_logout(self) -> None:
+        self.session_guard.stop()
+        
         if self.main_window is not None:
             self.main_window.close()
             self.main_window.deleteLater()
@@ -142,6 +167,24 @@ class XtremeCyberApplication:
 
         self._open_login_window()
         logger.info("User logged out.")
+
+    def _handle_session_expired(self) -> None:
+        """Sign out the user after the inactivity timeout."""
+
+        QMessageBox.information(
+            self.main_window,
+            "Session Expired",
+            (
+            "Your XtremeCyber session expired because no activity "
+            "was detected. Please sign in again."
+            ),
+        )
+
+        logger.info(
+            "User session expired because of inactivity."
+        )
+
+        self._handle_logout()
 
     def _toggle_theme(self) -> None:
         selected_theme = self.theme_manager.toggle_theme()

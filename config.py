@@ -72,6 +72,7 @@ DEFAULT_PORT_RANGE = "1-1000"
 MIN_PORT = 1
 MAX_PORT = 65535
 
+SESSION_TIMEOUT_MINUTES = 30
 
 # -------------------------------------------------
 # Email Configuration
