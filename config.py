@@ -72,6 +72,8 @@ DEFAULT_PORT_RANGE = "1-1000"
 MIN_PORT = 1
 MAX_PORT = 65535
 
+MAX_TARGETS_PER_SCAN = 256
+
 SESSION_TIMEOUT_MINUTES = 30
 
 # -------------------------------------------------

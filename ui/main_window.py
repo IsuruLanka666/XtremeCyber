@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Callable, Optional
 
 from ui.user_management_page import UserManagementPage
 
+from ui.scan_page import ScanPage
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -86,19 +88,13 @@ class MainWindow(QMainWindow):
 
         self.page_stack = QStackedWidget()
         self.page_stack.addWidget(self._create_dashboard_page())
-        self.page_stack.addWidget(
-            self._create_placeholder_page(
-                "New security scan",
-                "Configure an authorized target and select a scanning profile.",
-                "Scanning workspace",
-                (
-                    "Target entry, scan profiles, port settings, progress "
-                    "monitoring, and the scanning engine will be connected "
-                    "during the scanning development phase."
-                ),
-                "Prepare Scan",
-            )
+        self.scan_page = ScanPage()
+
+        self.scan_page.configuration_ready.connect(
+            self._handle_scan_configuration
         )
+
+        self.page_stack.addWidget(self.scan_page)
         self.page_stack.addWidget(
             self._create_placeholder_page(
                 "Assessment results",
@@ -723,6 +719,18 @@ class MainWindow(QMainWindow):
         scroll.setWidget(content)
         outer.addWidget(scroll)
         return page
+
+    def _handle_scan_configuration(self, configuration) -> None:
+        """Display feedback after successful configuration validation."""
+
+        self.statusBar().showMessage(
+        (
+            f"Validated {configuration.target.normalized_value}: "
+            f"{configuration.target.host_count} host(s), "
+            f"{configuration.ports.count} TCP port(s)."
+        ),
+        6000,
+    )
 
     @staticmethod
     def _create_settings_card(
