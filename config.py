@@ -65,6 +65,22 @@ LOG_BACKUP_COUNT = 5
 # Scanning 
 # -------------------------------------------------
 
+# Maximum host x port checks allowed in one scan.
+MAX_SCAN_OPERATIONS = 200_000
+
+# Maximum bytes read during safe banner collection.
+BANNER_MAX_BYTES = 256
+
+# Store closed TCP results in SQLite.
+# False is recommended because a large scan can contain many closed ports.
+PERSIST_CLOSED_SCAN_RESULTS = False
+
+# Persist live counters after this many completed TCP checks.
+SCAN_PROGRESS_DB_INTERVAL = 50
+
+# Maximum saved findings displayed by the Results page per query.
+RESULTS_QUERY_LIMIT = 5000
+
 MAX_THREADS = 100
 SCAN_TIMEOUT = 3.0
 DEFAULT_PORT_RANGE = "1-1000"

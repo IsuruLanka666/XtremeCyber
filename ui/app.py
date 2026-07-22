@@ -20,6 +20,7 @@ from config import (
 )
 from core.auth.session_guard import SessionGuard
 from core.constants import Theme
+from core.scanning.persistence import ScanRunRepository
 from core.database.database import database_manager
 from core.database.repository import SettingsRepository
 from core.helpers import ensure_directories
@@ -83,6 +84,18 @@ class XtremeCyberApplication:
         ensure_directories()
         configure_logging()
         database_manager.initialize()
+
+        scan_history_repository = ScanRunRepository()
+
+        recovered_scans = (
+            scan_history_repository.recover_interrupted_scans()
+        )
+
+        if recovered_scans:
+            logger.warning(
+                "Marked %s previous scan(s) as interrupted.",
+                recovered_scans,
+        )
 
         stored_theme = self.settings_repository.get("theme", THEME)
         self.theme_manager.apply_theme(

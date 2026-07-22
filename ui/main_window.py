@@ -8,7 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable, Optional
 
+from core.auth.permissions import Permission
+from core.auth.permissions import Permission
+from ui.account_page import AccountPage
 from ui.user_management_page import UserManagementPage
+
+from core.scanning.persistence import ScanRunRepository
+
+from ui.results_page import ResultsPage
 
 from ui.scan_page import ScanPage
 
@@ -52,6 +59,8 @@ class MainWindow(QMainWindow):
 
         self.session = session
         self.scan_repository = ScanRepository()
+        self.scan_history_repository = ScanRunRepository()
+        self.scan_repository = self.scan_history_repository
         self.settings_repository = SettingsRepository()
         self.navigation_buttons: list[QPushButton] = []
 
@@ -88,26 +97,31 @@ class MainWindow(QMainWindow):
 
         self.page_stack = QStackedWidget()
         self.page_stack.addWidget(self._create_dashboard_page())
-        self.scan_page = ScanPage()
+        self.scan_page = ScanPage(
+            session=self.session
+        )
 
         self.scan_page.configuration_ready.connect(
             self._handle_scan_configuration
         )
 
-        self.page_stack.addWidget(self.scan_page)
-        self.page_stack.addWidget(
-            self._create_placeholder_page(
-                "Assessment results",
-                "Analyze discovered hosts, services, ports, and vulnerability findings.",
-                "Unified result explorer",
-                (
-                    "Filtering, severity indicators, host details, service "
-                    "information, and CVE results will be implemented during "
-                    "the results development phase."
-                ),
-                "Refresh Results",
-            )
+        self.scan_page.scan_completed.connect(
+            self._handle_scan_completed
         )
+
+        self.scan_page.scan_saved.connect(
+            self._handle_scan_saved
+        )
+
+        self.page_stack.addWidget(self.scan_page)
+        self.results_page = ResultsPage(
+            session=self.session
+        )
+        self.page_stack.addWidget(
+            self.results_page
+        )
+
+        
         self.page_stack.addWidget(
             self._create_placeholder_page(
                 "Security reports",
@@ -123,11 +137,32 @@ class MainWindow(QMainWindow):
         )
         self.page_stack.addWidget(self._create_settings_page())
         
-        if self.session is not None and self.session.is_admin:
+        if (
+            self.session is not None
+            and self.session.can(Permission.MANAGE_USERS)
+        ):
             self.page_stack.addWidget(
-                UserManagementPage(session=self.session)
+                UserManagementPage(
+                    session=self.session
+                )
+            )
+      
+        else:
+            self.page_stack.addWidget(
+                QWidget()
         )
 
+        self.account_page = AccountPage(
+            session=self.session
+        )
+
+        self.account_page.logout_requested.connect(
+            self.logout_requested.emit
+        )
+
+        self.page_stack.addWidget(
+            self.account_page
+        )
 
         main_layout.addWidget(self.page_stack, 1)
         root_layout.addWidget(main_area, 1)
@@ -732,6 +767,34 @@ class MainWindow(QMainWindow):
         6000,
     )
 
+    def _handle_scan_completed(self, summary) -> None:
+        """Display a message after the TCP scan finishes."""
+
+        self.statusBar().showMessage(
+        (
+            f"TCP scan finished: "
+            f"{summary.open_ports} open, "
+            f"{summary.closed_ports} closed, "
+            f"{summary.errors} errors."
+        ),
+        8000,
+    )
+
+    def _handle_scan_saved(
+        self,
+        scan_id: int,
+    ) -> None:
+        """Refresh the UI after a scan is saved."""
+
+        self.results_page.refresh_history()
+        self.results_page.select_scan(scan_id)
+        self.refresh_dashboard()
+
+        self.statusBar().showMessage(
+            f"Scan #{scan_id} was saved to history.",
+            7000,
+        )
+
     @staticmethod
     def _create_settings_card(
         title: str,
@@ -800,25 +863,56 @@ class MainWindow(QMainWindow):
         if page_index == 0:
             self.refresh_dashboard()
 
+        if page_index == 2:
+            self.results_page.refresh_history()
+
     def refresh_dashboard(self) -> None:
+        """Refresh dashboard values from saved TCP scans."""
+
         try:
-            scans = self.scan_repository.get_recent(limit=100)
+            stats = (
+                self.scan_history_repository.dashboard_stats()
+            )
 
-            self.total_scans_value.setText(str(self.scan_repository.count_all()))
+            recent_scans = (
+                self.scan_history_repository.get_recent(
+                    limit=10
+                )
+            )
+
+            self.total_scans_value.setText(
+                str(stats["total"])
+            )
+
             self.pending_scans_value.setText(
-                str(sum(1 for scan in scans if scan.get("status") == "pending"))
+                str(stats["running"])
             )
-            self.completed_scans_value.setText(
-                str(sum(1 for scan in scans if scan.get("status") == "completed"))
-            )
-            self.database_status_value.setText("Connected")
 
-            self._populate_recent_scans(self.scan_repository.get_recent(limit=10))
+            self.completed_scans_value.setText(
+                str(stats["completed"])
+            )
+
+            self.database_status_value.setText(
+                "Connected"
+            )
+
+            self._populate_recent_scans(
+                recent_scans
+            )
 
         except Exception as exc:
-            logger.exception("Could not refresh dashboard.")
-            self.database_status_value.setText("Error")
-            self.statusBar().showMessage(str(exc), 5000)
+            logger.exception(
+                "Could not refresh persisted scan dashboard."
+            )
+
+            self.database_status_value.setText(
+                "Error"
+            )
+
+            self.statusBar().showMessage(
+                f"Dashboard refresh failed: {exc}",
+                5000,
+            )
 
     def _populate_recent_scans(self, scans: list[dict]) -> None:
         self.recent_scans_table.setRowCount(len(scans))
@@ -851,3 +945,11 @@ class MainWindow(QMainWindow):
         self.theme_button.setText(
             "Light Mode" if theme == Theme.DARK else "Dark Mode"
         )
+
+    def closeEvent(self, event) -> None:
+        """Cancel a running scan before closing."""
+
+        if hasattr(self, "scan_page"):
+            self.scan_page.shutdown()
+
+        super().closeEvent(event)
