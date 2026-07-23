@@ -4,6 +4,9 @@ Live TCP scan page with SQLite lifecycle persistence.
 """
 
 from __future__ import annotations
+from email.mime import message
+
+from ui.cve_worker import CveCorrelationWorker
 
 import config as app_config
 
@@ -52,6 +55,7 @@ from core.scanning.results import (
 from core.vulnerability.service import (
     VulnerabilityAssessmentService,
 )
+
 from ui.scan_worker import ScanWorker
 
 
@@ -75,6 +79,7 @@ class ScanPage(QWidget):
     scan_saved = Signal(int)
     scan_completed = Signal(object)
     analysis_completed = Signal(object)
+    cve_correlation_completed = Signal(object)
 
     def __init__(
         self,
@@ -100,6 +105,9 @@ class ScanPage(QWidget):
         self.scan_thread: QThread | None = None
         self.scan_worker: ScanWorker | None = None
         self.scan_running = False
+
+        self.cve_thread: QThread | None = None
+        self.cve_worker: CveCorrelationWorker | None = None
 
         self.setObjectName("pageBackground")
 
@@ -876,6 +884,8 @@ class ScanPage(QWidget):
                 assessment_summary
                 )
 
+                self._start_cve_correlation(assessment_summary.scan_id)
+
                 self.status_label.setText(
                     (
                         f"Scan saved and analyzed: "
@@ -987,3 +997,40 @@ class ScanPage(QWidget):
 
         if self.scan_worker is not None:
             self.scan_worker.cancel()
+
+    def _start_cve_correlation(self, scan_id: int) -> None:
+        if self.cve_thread is not None:
+            return
+
+        self.cve_thread = QThread(self)
+        self.cve_worker = CveCorrelationWorker(scan_id)
+        self.cve_worker.moveToThread(self.cve_thread)
+
+        self.cve_thread.started.connect(self.cve_worker.run)
+        self.cve_worker.status_changed.connect(self.status_label.setText)
+        self.cve_worker.completed.connect(self._cve_correlation_finished)
+        self.cve_worker.failed.connect(self._cve_correlation_failed)
+        self.cve_worker.completed.connect(self.cve_thread.quit)
+        self.cve_worker.failed.connect(self.cve_thread.quit)
+        self.cve_thread.finished.connect(self._cleanup_cve_thread)
+        self.cve_thread.start()
+
+    def _cve_correlation_finished(self, summary) -> None:
+        self.cve_correlation_completed.emit(summary)
+        self.status_label.setText(
+            f"NVD correlation completed: {summary.cves_matched} CVE(s), "
+            f"{summary.critical} critical, {summary.high} high."
+        )
+
+    def _cve_correlation_failed(self, message: str) -> None:
+        logger.error("NVD correlation failed: %s", message)
+        self.status_label.setText("Scan saved, but NVD correlation failed.")
+        QMessageBox.warning(self, "NVD Correlation Failed", message)
+
+    def _cleanup_cve_thread(self) -> None:
+        if self.cve_worker is not None:
+            self.cve_worker.deleteLater()
+        if self.cve_thread is not None:
+            self.cve_thread.deleteLater()
+        self.cve_worker = None
+        self.cve_thread = None

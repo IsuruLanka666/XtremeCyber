@@ -105,3 +105,13 @@ SMTP_PORT = int(os.getenv("XTREMECYBER_SMTP_PORT","587",))
 EMAIL = os.getenv("XTREMECYBER_EMAIL","",)
 
 PASSWORD = os.getenv("XTREMECYBER_PASSWORD","",)
+
+# -------------------------------------------------
+# NVD CVE intelligence
+# -------------------------------------------------
+
+NVD_API_KEY = os.getenv("NVD_API_KEY", "")
+NVD_API_TIMEOUT = 30
+NVD_REQUEST_DELAY_SECONDS = 0.7 if NVD_API_KEY else 6.2
+NVD_CPE_CACHE_DAYS = 30
+NVD_CVE_CACHE_DAYS = 7

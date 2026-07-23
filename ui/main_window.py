@@ -117,6 +117,10 @@ class MainWindow(QMainWindow):
             self._handle_analysis_completed
         )
 
+        self.scan_page.cve_correlation_completed.connect(
+            self._handle_cve_correlation_completed
+        )
+
         self.page_stack.addWidget(self.scan_page)
         self.results_page = ResultsPage(
             session=self.session
@@ -956,6 +960,17 @@ class MainWindow(QMainWindow):
 
         self.results_page.refresh_history()
         self.refresh_dashboard()
+
+    def _handle_cve_correlation_completed(self, summary) -> None:
+        self.statusBar().showMessage(
+            (
+                f"NVD correlation for scan #{summary.scan_id}: "
+                f"{summary.cves_matched} CVE(s), "
+                f"{summary.critical} critical, {summary.high} high, "
+                f"{summary.known_exploited} known exploited."
+            ),
+            12000,
+        )
 
     @staticmethod
     def _format_created_at(value: str) -> str:

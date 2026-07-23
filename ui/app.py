@@ -26,6 +26,9 @@ from core.database.repository import SettingsRepository
 from core.helpers import ensure_directories
 from core.logger import configure_logging, get_logger
 from core.vulnerability.persistence import (VulnerabilityRepository,)
+from core.vulnerability.intelligence_persistence import (
+    VulnerabilityIntelligenceRepository,
+)
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 from ui.splash import SplashScreen
@@ -88,6 +91,7 @@ class XtremeCyberApplication:
 
         scan_history_repository = ScanRunRepository()
         VulnerabilityRepository()
+        VulnerabilityIntelligenceRepository()
 
         recovered_scans = (
             scan_history_repository.recover_interrupted_scans()
