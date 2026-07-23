@@ -113,6 +113,10 @@ class MainWindow(QMainWindow):
             self._handle_scan_saved
         )
 
+        self.scan_page.analysis_completed.connect(
+            self._handle_analysis_completed
+        )
+
         self.page_stack.addWidget(self.scan_page)
         self.results_page = ResultsPage(
             session=self.session
@@ -931,6 +935,27 @@ class MainWindow(QMainWindow):
                 if column in (0, 2, 3):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.recent_scans_table.setItem(row, column, item)
+
+    def _handle_analysis_completed(self, summary) -> None:
+        """Display feedback after post-scan exposure analysis."""
+
+        highest = (
+            summary.highest_severity.value.title()
+            if summary.highest_severity is not None
+            else "None"
+        )
+
+        self.statusBar().showMessage(
+            (
+                f"Vulnerability analysis completed for scan "
+                f"#{summary.scan_id}: {summary.findings} finding(s), "
+                f"highest severity {highest}."
+            ),
+            9000,
+        )
+
+        self.results_page.refresh_history()
+        self.refresh_dashboard()
 
     @staticmethod
     def _format_created_at(value: str) -> str:

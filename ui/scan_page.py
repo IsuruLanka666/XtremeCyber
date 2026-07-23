@@ -49,6 +49,9 @@ from core.scanning.results import (
     ScanProgress,
     ScanSummary,
 )
+from core.vulnerability.service import (
+    VulnerabilityAssessmentService,
+)
 from ui.scan_worker import ScanWorker
 
 
@@ -71,6 +74,7 @@ class ScanPage(QWidget):
     scan_started = Signal(int)
     scan_saved = Signal(int)
     scan_completed = Signal(object)
+    analysis_completed = Signal(object)
 
     def __init__(
         self,
@@ -82,6 +86,12 @@ class ScanPage(QWidget):
 
         self.session = session
         self.repository = ScanRunRepository()
+
+        self.vulnerability_service = (
+            VulnerabilityAssessmentService(
+                scan_repository=self.repository
+            )
+        )
 
         self.current_configuration: ScanConfiguration | None = None
         self.current_scan_id: int | None = None
@@ -842,6 +852,39 @@ class ScanPage(QWidget):
 
         if self.current_scan_id is not None:
             self.scan_saved.emit(self.current_scan_id)
+
+        if self.current_scan_id is not None:
+            try:
+                assessment_summary = (
+                    self.vulnerability_service.analyze_scan(
+                        self.current_scan_id
+                    )
+                )
+            except XtremeCyberError as exc:
+                logger.exception(
+                    "Could not analyze saved scan id=%s.",
+                    self.current_scan_id,
+                )
+
+                QMessageBox.warning(
+                    self,
+                    "Scan Saved but Analysis Failed",
+                    str(exc),
+                )
+            else:
+                self.analysis_completed.emit(
+                assessment_summary
+                )
+
+                self.status_label.setText(
+                    (
+                        f"Scan saved and analyzed: "
+                        f"{assessment_summary.findings} finding(s), "
+                        f"{assessment_summary.high} high, "
+                        f"{assessment_summary.medium} medium."
+                    )
+                )
+            
 
         self.scan_completed.emit(summary)
 
